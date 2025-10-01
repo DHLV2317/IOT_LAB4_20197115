@@ -1,3 +1,20 @@
 <resources>
-    <string name="app_name">IOT_LAB4_20197115</string>
+    <string name="app_name">Tele-Weather</string>
+
+    <!-- Títulos de tabs / toolbar -->
+    <string name="title_locations">Locations</string>
+    <string name="title_forecast">Forecast</string>
+    <string name="title_future">Future</string>
+    <string name="title_sports">Sports</string>
+
+    <!-- Botones y acciones -->
+    <string name="action_export">Export PDF</string>
+    <string name="action_search">Buscar</string>
+
+    <!-- Textos de ayuda -->
+    <string name="hint_search">Buscar por Ciudad/Distrito</string>
+    <string name="hint_place">Ciudad o Lugar (ej. London)</string>
+    <string name="empty_search">Ingresa una búsqueda</string>
+    <string name="no_data">No data</string>
+    <string name="syncing">Syncing…</string>
 </resources>

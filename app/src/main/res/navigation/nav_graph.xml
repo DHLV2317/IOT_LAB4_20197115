@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/locationFragment">
+
+    <fragment
+        android:id="@+id/locationFragment"
+        android:name="com.example.iot_lab4_20197115.ui.LocationFragment"
+        android:label="@string/title_locations" />
+
+    <fragment
+        android:id="@+id/forecastFragment"
+        android:name="com.example.iot_lab4_20197115.ui.ForecastFragment"
+        android:label="@string/title_forecast" />
+
+    <fragment
+        android:id="@+id/sportsFragment"
+        android:name="com.example.iot_lab4_20197115.ui.SportsFragment"
+        android:label="@string/title_sports" />
+</navigation>
