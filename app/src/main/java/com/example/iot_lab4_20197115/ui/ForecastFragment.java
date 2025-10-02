@@ -20,7 +20,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView; // ✅ ESTE es el correcto
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.iot_lab4_20197115.R;
 
@@ -37,28 +37,25 @@ import java.util.List;
 public class ForecastFragment extends Fragment implements SensorEventListener {
 
     private TextView tHeader, empty;
-    private EditText inDays;
+    private EditText inDays, inLocationId;
     private Button btnLoad;
     private ProgressBar progress;
     private RecyclerView recycler;
     private ForecastAdapter adapter;
 
-    // Lista en memoria para poder eliminar el último por "shake"
     private final List<ForecastItem> forecastList = new ArrayList<>();
 
-    // Datos desde LocationFragment
+    // Datos que pueden llegar desde LocationFragment
     private int locationId = 0;
     private String locationName = "";
 
-    // Tu API key
+    // API Key
     private static final String API_KEY = "becac55206564c98b87224707250110";
 
-    // ====== Sensor (Acelerómetro/Shake) ======
+    // Sensor (shake-to-delete)
     private SensorManager sensorManager;
     private Sensor accelerometer;
-
-    // Detectamos "shake" usando gForce (aceleración relativa a la gravedad)
-    private static final float SHAKE_THRESHOLD_G = 2.2f; // ~ agitación clara
+    private static final float SHAKE_THRESHOLD_G = 2.2f;
     private static final long SHAKE_COOLDOWN_MS = 1500L;
     private long lastShakeTime = 0L;
 
@@ -71,27 +68,46 @@ public class ForecastFragment extends Fragment implements SensorEventListener {
 
     @Override
     public void onViewCreated(@NonNull View v, @Nullable Bundle s) {
-        tHeader = v.findViewById(R.id.tHeader);
-        inDays  = v.findViewById(R.id.inDays);
-        btnLoad = v.findViewById(R.id.btnLoad);
-        progress= v.findViewById(R.id.progress);
-        empty   = v.findViewById(R.id.empty);
-        recycler= v.findViewById(R.id.recycler);
+        tHeader      = v.findViewById(R.id.tHeader);
+        inDays       = v.findViewById(R.id.inDays);
+        inLocationId = v.findViewById(R.id.inLocationId);
+        btnLoad      = v.findViewById(R.id.btnLoad);
+        progress     = v.findViewById(R.id.progress);
+        empty        = v.findViewById(R.id.empty);
+        recycler     = v.findViewById(R.id.recycler);
 
-        recycler.setLayoutManager(new LinearLayoutManager(getContext())); // ✅
+        recycler.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new ForecastAdapter();
-        recycler.setAdapter(adapter); // ✅
+        recycler.setAdapter(adapter);
 
-        // Args desde LocationFragment
+        // Args desde Locations (si existen, rellenan los campos)
         Bundle args = getArguments();
         if (args != null) {
             locationId   = args.getInt("locationId", 0);
             locationName = args.getString("locationName", "");
         }
-        tHeader.setText("Pronóstico de: " + locationName + " (id " + locationId + ")");
+        if (locationId > 0) inLocationId.setText(String.valueOf(locationId));
+        tHeader.setText(locationName.isEmpty()
+                ? "Pronóstico"
+                : "Pronóstico de: " + locationName + " (id " + locationId + ")");
 
-        // Cargar pronóstico
+        // Por comodidad, prellenar 7 días
+        inDays.setText("7");
+
         btnLoad.setOnClickListener(x -> {
+            // 1) validar ID
+            String sId = inLocationId.getText().toString().trim();
+            if (TextUtils.isEmpty(sId)) {
+                inLocationId.setError("Ingresa el ID de locación");
+                return;
+            }
+            int id;
+            try { id = Integer.parseInt(sId); }
+            catch (NumberFormatException e) {
+                inLocationId.setError("ID inválido");
+                return;
+            }
+            // 2) validar días (1..14)
             String sDays = inDays.getText().toString().trim();
             if (TextUtils.isEmpty(sDays)) {
                 inDays.setError("Requerido (1-14)");
@@ -107,34 +123,35 @@ public class ForecastFragment extends Fragment implements SensorEventListener {
                 inDays.setError("Rango 1 a 14");
                 return;
             }
-            new TaskForecast().execute(locationId, days);
+
+            // Guardamos el id actual por si llegó vacío en args
+            locationId = id;
+            new TaskForecast().execute(id, days);
         });
 
-        // Sensor setup
-        sensorManager = (SensorManager) requireContext().getSystemService(android.content.Context.SENSOR_SERVICE);
+        sensorManager = (SensorManager) requireContext()
+                .getSystemService(android.content.Context.SENSOR_SERVICE);
         if (sensorManager != null) accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
     }
 
-    // ===== Ciclo de vida del sensor =====
+    // ===== Ciclo de vida sensor =====
     @Override public void onResume() {
         super.onResume();
         if (accelerometer != null) {
             sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);
         }
     }
-
     @Override public void onPause() {
         super.onPause();
         if (sensorManager != null) sensorManager.unregisterListener(this);
     }
 
-    // ===== Detección de agitación (solo si hay datos cargados) =====
+    // ===== Shake-to-delete último item =====
     @Override
     public void onSensorChanged(SensorEvent e) {
         if (e.sensor.getType() != Sensor.TYPE_ACCELEROMETER) return;
-        if (forecastList.isEmpty()) return; // solo activa si ya hay resultados en pantalla
+        if (forecastList.isEmpty()) return;
 
-        // gForce = |a| / g
         float gX = e.values[0] / SensorManager.GRAVITY_EARTH;
         float gY = e.values[1] / SensorManager.GRAVITY_EARTH;
         float gZ = e.values[2] / SensorManager.GRAVITY_EARTH;
@@ -146,6 +163,7 @@ public class ForecastFragment extends Fragment implements SensorEventListener {
             showConfirmDialog();
         }
     }
+    @Override public void onAccuracyChanged(Sensor sensor, int accuracy) { }
 
     private void showConfirmDialog() {
         new AlertDialog.Builder(requireContext())
@@ -165,9 +183,7 @@ public class ForecastFragment extends Fragment implements SensorEventListener {
                 .show();
     }
 
-    @Override public void onAccuracyChanged(Sensor sensor, int accuracy) { /* no-op */ }
-
-    // ====== Llamada a la API: forecast por id + days ======
+    // ===== Llamada a la API: forecast por id + days (incluye hoy) =====
     private class TaskForecast extends AsyncTask<Integer, Void, List<ForecastItem>> {
         private String error;
 
@@ -180,6 +196,7 @@ public class ForecastFragment extends Fragment implements SensorEventListener {
         protected List<ForecastItem> doInBackground(Integer... p) {
             int id = p[0];
             int days = p[1];
+
             String urlS = "https://api.weatherapi.com/v1/forecast.json?key="
                     + API_KEY + "&q=id:" + id + "&days=" + days;
 
@@ -209,7 +226,7 @@ public class ForecastFragment extends Fragment implements SensorEventListener {
                 List<ForecastItem> out = new ArrayList<>();
                 for (int i = 0; i < daysArr.length(); i++) {
                     JSONObject d = daysArr.getJSONObject(i);
-                    String date = d.optString("date");
+                    String date = d.optString("date"); // incluye hoy como primer elemento
                     JSONObject day = d.getJSONObject("day");
                     double maxC = day.optDouble("maxtemp_c");
                     double minC = day.optDouble("mintemp_c");

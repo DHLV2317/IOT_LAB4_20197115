@@ -13,6 +13,23 @@
         android:layout_height="wrap_content"
         android:text="Forecast" />
 
+    <!-- Fila 1: ID de locación -->
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp">
+
+        <EditText
+            android:id="@+id/inLocationId"
+            android:hint="ID de locación"
+            android:inputType="number"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <!-- Fila 2: días y botón -->
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="match_parent"
@@ -51,7 +68,6 @@
         android:text="@string/no_data"
         android:visibility="gone" />
 
-    <!-- OJO: debe ser exactamente este widget de androidx -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler"
         android:layout_width="match_parent"
